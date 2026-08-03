@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Caja Jade Joyas</title>
+<style>
+  :root{
+    --jj-verde:#1e2e22;
+    --jj-verde-suave:#2f4534;
+    --jj-oro:#6b4423;
+    --jj-crema:#ede6d8;
+    --jj-navy:#2b1d12;
+    --jj-rojo:#6b3a2a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: var(--jj-crema);
+    color: var(--jj-verde);
+  }
+  header{
+    background: var(--jj-navy);
+    color: var(--jj-crema);
+    padding: 16px 20px 12px;
+    text-align:center;
+    border-bottom: 3px solid var(--jj-oro);
+  }
+  header h1{
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 20px;
+    font-weight:700;
+    margin: 0;
+    color: var(--jj-crema);
+    letter-spacing: 0.5px;
+  }
+  header p{ margin: 2px 0 0; font-size: 13px; opacity:.75; }
+  nav{
+    display:flex;
+    background: var(--jj-verde);
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+  nav button{
+    background:none;
+    border:none;
+    color:#e8e6f0;
+    padding: 12px 18px;
+    font-size: 14px;
+    cursor:pointer;
+    border-bottom: 3px solid transparent;
+  }
+  nav button.active{
+    border-bottom: 3px solid var(--jj-oro);
+    color: var(--jj-oro);
+    font-weight:600;
+  }
+  main{ max-width: 900px; margin: 0 auto; padding: 16px; }
+  .tab{ display:none; }
+  .tab.active{ display:block; }
+  .cards{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px,1fr));
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .card{
+    background:white;
+    border:1px solid #e2dcc9;
+    border-radius:10px;
+    padding:12px 14px;
+    text-align:center;
+  }
+  .card .label{ font-size:12px; color:#7a7462; text-transform:uppercase; letter-spacing:.5px;}
+  .card .value{ font-size:20px; font-weight:700; margin-top:4px;}
+  .value.pos{ color: var(--jj-verde-suave); }
+  .value.neg{ color: var(--jj-rojo); }
+  .value.gold{ color:#a3810f; }
+  section.box{
+    background:white;
+    border:1px solid #e2dcc9;
+    border-radius:10px;
+    padding:14px 16px;
+    margin-bottom:18px;
+  }
+  h2{ font-size:17px; margin:0 0 12px; color:var(--jj-navy); }
+  label{ font-size:13px; font-weight:600; display:block; margin:8px 0 3px; }
+  select, input, button, textarea{
+    font-size:14px;
+    padding:8px 10px;
+    border:1px solid #cfc7ae;
+    border-radius:6px;
+    width:100%;
+    background:#fffdf8;
+  }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .row > div{ flex:1; min-width:140px; }
+  .btn-main{
+    background: var(--jj-verde);
+    color: var(--jj-crema);
+    border:none;
+    font-weight:600;
+    cursor:pointer;
+    margin-top:12px;
+  }
+  .btn-main:hover{ background: var(--jj-verde-suave); }
+  .btn-small{
+    width:auto;
+    padding: 4px 10px;
+    font-size:12px;
+    background:#fff;
+    cursor:pointer;
+    color: var(--jj-rojo);
+    border-color: var(--jj-rojo);
+  }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th, td{ padding:7px 6px; border-bottom:1px solid #ece6d4; text-align:left; }
+  th{ color:#7a7462; font-weight:600; font-size:11px; text-transform:uppercase; }
+  .tag{
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:20px;
+    font-size:11px;
+    font-weight:600;
+  }
+  .tag.ingreso{ background:#e2ecdf; color:#2c4f41; }
+  .tag.gasto{ background:#f3e2df; color:#8a3324; }
+  .search-bar{ margin-bottom:10px; }
+  .stock-low{ color: var(--jj-rojo); font-weight:700; }
+  .toggle-group{ display:flex; gap:8px; margin-bottom:10px; }
+  .toggle-group button{
+    flex:1;
+    width:auto;
+    background:#fff;
+    cursor:pointer;
+  }
+  .toggle-group button.sel{
+    background: var(--jj-navy);
+    color:white;
+    border-color: var(--jj-navy);
+  }
+  .hidden{ display:none; }
+  .note{ font-size:12px; color:#8a8060; margin-top:6px; }
+  .empty{ text-align:center; color:#a39c86; padding:20px 0; font-size:13px; }
+  #loadingScreen{ text-align:center; padding:60px 20px; color:#7a7462; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Jade Joyas</h1>
+  <p>Control de caja e inventario</p>
+</header>
+
+<nav>
+  <button class="navbtn active" data-tab="caja">Caja</button>
+  <button class="navbtn" data-tab="nuevo">Nuevo movimiento</button>
+  <button class="navbtn" data-tab="inventario">Inventario</button>
+</nav>
+
+<main>
+  <div id="loadingScreen">Cargando datos...</div>
+
+  <div id="app" class="hidden">
+
+    <!-- TAB CAJA -->
+    <div class="tab active" id="tab-caja">
+      <div class="cards">
+        <div class="card"><div class="label">Ingresos</div><div class="value pos" id="sumIngresos">$0</div></div>
+        <div class="card"><div class="label">Gastos</div><div class="value neg" id="sumGastos">$0</div></div>
+        <div class="card"><div class="label">Ganancia</div><div class="value gold" id="sumGanancia">$0</div></div>
+      </div>
+
+      <div class="cards">
+        <div class="card"><div class="label">Caja chica</div><div class="value" id="sumCajaChica">$0</div></div>
+        <div class="card"><div class="label">Caja grande</div><div class="value" id="sumCajaGrande">$0</div></div>
+      </div>
+
+      <section class="box">
+        <h2>Gastos por categoría</h2>
+        <div id="gastoBreakdown" class="empty">Sin gastos cargados todavía.</div>
+      </section>
+
+      <section class="box">
+        <h2>Movimientos</h2>
+        <div id="movList" class="empty">Todavía no hay movimientos.</div>
+      </section>
+    </div>
+
+    <!-- TAB NUEVO MOVIMIENTO -->
+    <div class="tab" id="tab-nuevo">
+      <section class="box">
+        <h2>Registrar movimiento</h2>
+        <div class="toggle-group">
+          <button type="button" id="btnTipoIngreso" class="sel">Ingreso</button>
+          <button type="button" id="btnTipoGasto">Gasto</button>
+        </div>
+
+        <!-- INGRESO -->
+        <div id="formIngreso">
+          <label>Categoría</label>
+          <select id="ingresoCategoria">
+            <option value="Venta">Venta</option>
+            <option value="Otro">Otro ingreso</option>
+          </select>
+
+          <div id="ventaFields">
+            <label>Artículo vendido</label>
+            <select id="ventaProducto"></select>
+            <div class="row">
+              <div>
+                <label>Cantidad</label>
+                <input type="number" id="ventaCantidad" value="1" min="1">
+              </div>
+              <div>
+                <label>Precio unitario</label>
+                <input type="number" id="ventaPrecioUnit" value="0" min="0">
+              </div>
+              <div>
+                <label>Total</label>
+                <input type="number" id="ventaTotal" value="0" min="0">
+              </div>
+            </div>
+            <p class="note" id="stockDisponibleNote"></p>
+          </div>
+
+          <div id="ingresoOtroFields" class="hidden">
+            <label>Descripción</label>
+            <input type="text" id="ingresoOtroDesc" placeholder="Ej: seña de encargo">
+            <label>Monto</label>
+            <input type="number" id="ingresoOtroMonto" value="0" min="0">
+          </div>
+        </div>
+
+        <!-- GASTO -->
+        <div id="formGasto" class="hidden">
+          <label>Categoría</label>
+          <select id="gastoCategoria">
+            <option value="Inversión">Inversión</option>
+            <option value="Mercadería">Mercadería</option>
+            <option value="Packaging">Packaging</option>
+            <option value="Otro">Otro gasto</option>
+          </select>
+
+          <label>Descripción</label>
+          <input type="text" id="gastoDesc" placeholder="Ej: compra de bolsitas de regalo">
+
+          <label>Monto</label>
+          <input type="number" id="gastoMonto" value="0" min="0">
+
+          <div id="reponerBox">
+            <label style="display:flex; align-items:center; gap:6px; font-weight:600;">
+              <input type="checkbox" id="reponerCheck" style="width:auto;"> Este gasto repone stock de un artículo
+            </label>
+            <div id="reponerFields" class="hidden">
+              <label>Artículo</label>
+              <select id="reponerProducto"></select>
+              <label>Cantidad comprada</label>
+              <input type="number" id="reponerCantidad" value="1" min="1">
+            </div>
+          </div>
+        </div>
+
+        <label>Fecha</label>
+        <input type="date" id="movFecha">
+
+        <label>Caja</label>
+        <select id="movCaja">
+          <option value="chica">Caja chica (efectivo del día a día)</option>
+          <option value="grande">Caja grande (ahorros / inversión fuerte)</option>
+        </select>
+
+        <button class="btn-main" id="btnGuardarMov">Guardar movimiento</button>
+        <p class="note" id="movMsg"></p>
+      </section>
+    </div>
+
+    <!-- TAB INVENTARIO -->
+    <div class="tab" id="tab-inventario">
+      <section class="box">
+        <h2>Agregar artículo nuevo</h2>
+        <div class="row">
+          <div>
+            <label>Descripción</label>
+            <input type="text" id="nuevoDesc" placeholder="Ej: Anillo solitario">
+          </div>
+          <div>
+            <label>Material</label>
+            <input type="text" id="nuevoMaterial" placeholder="Ej: Plata 925">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Categoría</label>
+            <input type="text" id="nuevoCategoria" placeholder="Ej: Anillos">
+          </div>
+          <div>
+            <label>Stock inicial</label>
+            <input type="number" id="nuevoStock" value="1" min="0">
+          </div>
+          <div>
+            <label>Precio de venta</label>
+            <input type="number" id="nuevoPrecio" value="0" min="0">
+          </div>
+        </div>
+        <button class="btn-main" id="btnAgregarProducto">Agregar al inventario</button>
+      </section>
+
+      <section class="box">
+        <h2>Inventario</h2>
+        <input type="text" class="search-bar" id="searchInv" placeholder="Buscar por descripción, material o categoría...">
+        <div style="overflow-x:auto;">
+        <table id="tablaInventario">
+          <thead>
+            <tr>
+              <th>Descripción</th><th>Material</th><th>Categoría</th><th>Stock</th><th>Precio</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="invBody"></tbody>
+        </table>
+        </div>
+      </section>
+    </div>
+
+  </div>
+</main>
+
+<script>
+let DATA = { products: [], movements: [] };
+let loaded = false;
+
+const rawProducts = [
+["Abridores varios (+ modelos en destacadas)","Plata 925","Precios x 27",27,189000],
+["Esclava","Plata 925","Pulseras",1,100000],
+["Roló punto peruano","Plata 925","Pulseras",1,100000],
+["Argollas Grandes Gruesas","Plata 925","Argollas",1,75000],
+["Anillo Cruz con detalles","Plata 925","Anillos",1,75000],
+["Argollas Medianas Gruesas","Plata 925","Argollas",1,65000],
+["Collar estrellitas regulable","Plata 925","Cadenas",1,60000],
+["Argollas Finas Grandes","Plata 925","Argollas",1,60000],
+["Corbatero corazon","Plata 925","Cadenas",1,56500],
+["Corbatero dije llave","Plata 925","Cadenas",1,56500],
+["Pulsera Bali","Plata 925","Pulseras",1,56500],
+["Anillo tipo alianza","Plata 925","Anillos",1,56500],
+["Argollas dobles","Plata 925","Argollas",1,50000],
+["Pulsera mariposa","Plata 925","Pulseras",1,47940],
+["Dije Moño Cubic Strass","Plata 925","Dijes",1,42840],
+["Dije Rombo Cubic Strass","Plata 925","Dijes",1,42840],
+["Dije Susanito Cubic Strass","Plata 925","Dijes",1,42840],
+["Aros estrella","Plata 925","Aros",1,41140],
+["Dijes para pandora","Plata 925","Dijes",1,39440],
+["Dijes para pandora","Plata 925","Dijes",1,39440],
+["Dijes para pandora","Plata 925","Dijes",1,39440],
+["Dijes para pandora","Plata 925","Dijes",1,39440],
+["Argollas lunita rosé","Plata 925 Rosé","Argollas",1,39440],
+["Anillos curvas","Plata 925","Anillos",1,36040],
+["Dije cruz swarovski","Plata 925","Dijes",1,35900],
+["Dije estrella swarovski","Plata 925","Dijes",1,35900],
+["Dije triángulo swarowski","Plata 925","Dijes",1,35900],
+["anillo corazón","Plata 925","Anillos",1,32000],
+["anillo olita","Plata 925","Anillos",1,29240],
+["anillo corazon","Plata 925","Anillos",1,29240],
+["Media Falange Corazón","Plata 925","Anillos",1,25900],
+["Argollitas Ojo Turco","Plata 925","Argollas",1,25840],
+["Argollas corazón","Plata 925","Argollas",1,25840],
+["Argolla Circulo","Plata 925","Argollas",1,25840],
+["Argolla Ojo Turco Rosa","Plata 925","Argollas",1,25840],
+["argollas cubanas","Plata 925","Argollas",1,25626],
+["Dije olita con cubic","Plata 925","Dijes",1,22440],
+["Dije circulo con maripositas","Plata 925","Dijes",1,56440],
+["Patita dije","Plata 925","Dijes",1,56440],
+["Aros strass cruzados MINCA gold/plata","Fantasia","Aros de Fiesta",1,20400],
+["Aros flowers Strass","Fantasia","Aros de Fiesta",1,20400],
+["Aros pasante corazón acero blanco","Acero Blanco","Aros",1,19040],
+["Argollita Cookie","Plata 925","Argollas",1,18859],
+["Dijes nenes cubic","Plata 925","Dijes",1,17088],
+["Dijes nenes cubic","Plata 925","Dijes",1,17088],
+["Dije elefante","Plata 925","Dijes",1,15640],
+["Dije llave","Plata 925","Dijes",1,15640],
+["circulo dije","Plata 925","Dijes",1,56440],
+["Dije cirulo hueco con strass","Plata 925","Dijes",1,15640],
+["Argollas chapita dorada","Acero Dorado","Argollas",1,15100],
+["Argollas micro chapita","Acero Blanco","Argollas",1,15100],
+["Estrella G argolla","Acero Dorado","Argollas",1,12240],
+["Flores G argolla","Acero Dorado","Argollas",1,12240],
+["corazon G argolla","Acero Dorado","Argollas",1,12240],
+["Corazon M argolla","Acero Dorado","Argollas",1,12240],
+["corazon G argolla","Acero Dorado","Argollas",1,12240],
+["Estrella M argolla","Acero Dorado","Argollas",1,12240],
+["Rectangulos argolla","Acero Dorado","Argollas",1,12240],
+["Rayitos argolla","Acero Dorado","Argollas",1,12240],
+["Rectangulos argolla","Acero Dorado","Argollas",1,12240],
+["Estrella y Corazón G argolla","Acero Dorado","Argollas",1,10000],
+["Estrella Blanca G argolla","Acero Dorado","Argollas",1,10000],
+["Aros CHAIN dorado","Acero Dorado","Aros",1,12240],
+["Aros CHAIN dorado","Acero Dorado","Aros",1,12240],
+["Argolla Solitaria Ancha","Plata 925","Aro Solitario",1,13940],
+["Guitarra Solitaria","Plata 925","Aro Solitario",1,10540],
+["Argolla Dorada Fantasía","Acero Dorado","Aros de Fiesta",1,12240],
+["Argolla Dorada Fantasía","Acero Dorado","Aros de Fiesta",1,12240],
+["Argolla Solitaria Ojito","Plata 925","Aro Solitario",1,12240],
+["Cuff Flor","Plata 925","Cuff",1,15000],
+["Cuff Olita","Plata 925","Cuff",1,15000],
+["Cuff Doble Linea","Plata 925","Cuff",1,15000],
+["Cuff Doble Linea","Plata 925","Cuff",1,15000],
+["bolitas","Plata 925","Trepadores",1,13940],
+["estrellitas","Plata 925","Trepadores",1,13940],
+["Huella Mini","Plata 925","Aros",1,7000],
+["Minnie Mini","Plata 925","Aros",1,7000],
+["Argolla Forma Corazón","Plata 925","Argollas",1,10000],
+["Argolla Dije Mini Flor y Corazón","Plata 925","Argollas",1,10000],
+["Aros Cruz Solitario","Plata 925","Aro Solitario",1,10540],
+["Piciercing Brillo","Plata 925","Aros a Presion",1,10000],
+["Argollita Solitarias Mini Bolita","Plata 925","Argollas",1,10000],
+["Piciercing Diamante","Plata 925","Aro Solitario",1,10000],
+["Cadena de Plata","Plata 925","Cadena",0,0],
+["Tobillera","Plata 925","Tobillera",0,0]
+];
+
+function buildDefaultProducts(){
+  return rawProducts.map((p,i)=>({
+    id: "p"+(i+1),
+    descripcion: p[0],
+    material: p[1],
+    categoria: p[2],
+    stock: p[3],
+    precio: p[4]
+  }));
+}
+
+function buildDefaultMovements(){
+  const today = new Date().toISOString().slice(0,10);
+  return [
+    {id:"m1", fecha: today, tipo:"gasto", categoria:"Inversión", descripcion:"Catalogo Armado", monto:189000, caja:"chica"},
+    {id:"m2", fecha: today, tipo:"gasto", categoria:"Inversión", descripcion:"Pagina de Instagram", monto:100000, caja:"chica"}
+  ];
+}
+
+const DATA_VERSION = 3;
+
+function findProdIdByDesc(desc){
+  const p = DATA.products.find(pp => pp.descripcion === desc);
+  return p ? p.id : null;
+}
+
+function applyHistorialV2(){
+  const today = new Date().toISOString().slice(0,10);
+
+  const fixMap = {};
+  rawProducts.forEach((p,i)=>{ fixMap["p"+(i+1)] = p[4]; });
+  DATA.products.forEach(prod=>{
+    if(fixMap.hasOwnProperty(prod.id)) prod.precio = fixMap[prod.id];
+  });
+
+  const ventas = [
+    ["Esclava", 100000],
+    ["Dijes para pandora", 40000],
+    ["argollas cubanas", 40000],
+    ["Abridores varios (+ modelos en destacadas)", 7000],
+    ["Guitarra Solitaria", 10540],
+    ["Abridores varios (+ modelos en destacadas)", 7000],
+    ["Argollas dobles", 50000],
+    ["Argollas Finas Grandes", 60000],
+    ["Dije cruz swarovski", 35000]
+  ];
+
+  ventas.forEach((v, idx)=>{
+    const prodId = findProdIdByDesc(v[0]);
+    const prod = prodId ? DATA.products.find(p=>p.id===prodId) : null;
+    if(prod && prod.stock > 0){
+      prod.stock -= 1;
+    }
+    DATA.movements.push({
+      id: "hist_v_"+idx,
+      fecha: today,
+      tipo: "ingreso",
+      categoria: "Venta",
+      descripcion: prod ? prod.descripcion : v[0],
+      monto: v[1],
+      productId: prod ? prod.id : undefined,
+      cantidad: 1,
+      caja: "chica"
+    });
+  });
+
+  const gastos = [
+    ["Mercadería", "Inversión Belu - Mercadería", 1022000],
+    ["Mercadería", "Ajuste de Ambas para comprar Mercadería", 50000],
+    ["Packaging", "Mercado Libre - Packaging", 191000],
+    ["Packaging", "Viruta Kraft", 39000],
+    ["Packaging", "Libreria Kitty", 21300]
+  ];
+
+  gastos.forEach((g, idx)=>{
+    DATA.movements.push({
+      id: "hist_g_"+idx,
+      fecha: today,
+      tipo: "gasto",
+      categoria: g[0],
+      descripcion: g[1],
+      monto: g[2],
+      caja: g[1] === "Inversión Belu - Mercadería" ? "grande" : "chica"
+    });
+  });
+
+  DATA.version = DATA_VERSION;
+}
+
+function fmt(n){
+  n = Math.round(Number(n)||0);
+  return "$" + n.toLocaleString("es-AR");
+}
+
+function applyCajaSplitV3(){
+  DATA.movements.forEach(m=>{
+    if(!m.caja){
+      m.caja = (m.descripcion === "Inversión Belu - Mercadería") ? "grande" : "chica";
+    }
+  });
+  DATA.version = DATA_VERSION;
+}
+
+async function loadData(){
+  let isNew = false;
+  try{
+    const res = await window.storage.get("jade-caja-data", false);
+    if(res && res.value){
+      DATA = JSON.parse(res.value);
+    } else {
+      DATA = { products: buildDefaultProducts(), movements: buildDefaultMovements() };
+      isNew = true;
+    }
+  } catch(e){
+    DATA = { products: buildDefaultProducts(), movements: buildDefaultMovements() };
+    isNew = true;
+  }
+  if(!DATA.version || DATA.version < 2){
+    applyHistorialV2();
+  }
+  if(!DATA.version || DATA.version < DATA_VERSION){
+    applyCajaSplitV3();
+  }
+  try{ await saveData(); }catch(e2){}
+  loaded = true;
+}
+
+async function saveData(){
+  try{
+    await window.storage.set("jade-caja-data", JSON.stringify(DATA), false);
+  } catch(e){
+    console.error("Error guardando datos", e);
+  }
+}
+
+function switchTab(tab){
+  document.querySelectorAll(".navbtn").forEach(b=>b.classList.toggle("active", b.dataset.tab===tab));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.getElementById("tab-"+tab).classList.add("active");
+  if(tab==="nuevo") refreshMovForm();
+  if(tab==="inventario") renderInventario();
+  if(tab==="caja") renderCaja();
+}
+
+document.querySelectorAll(".navbtn").forEach(b=>{
+  b.addEventListener("click", ()=> switchTab(b.dataset.tab));
+});
+
+function renderCaja(){
+  let ingresos=0, gastos=0;
+  let chica=0, grande=0;
+  const gastoPorCat = {};
+  DATA.movements.forEach(m=>{
+    const monto = Number(m.monto)||0;
+    const signo = m.tipo==="ingreso" ? monto : -monto;
+    if((m.caja||"chica") === "grande") grande += signo;
+    else chica += signo;
+
+    if(m.tipo==="ingreso") ingresos += monto;
+    else {
+      gastos += monto;
+      gastoPorCat[m.categoria] = (gastoPorCat[m.categoria]||0) + monto;
+    }
+  });
+  document.getElementById("sumIngresos").textContent = fmt(ingresos);
+  document.getElementById("sumGastos").textContent = fmt(gastos);
+  const gan = ingresos - gastos;
+  const ganEl = document.getElementById("sumGanancia");
+  ganEl.textContent = fmt(gan);
+  ganEl.className = "value " + (gan>=0 ? "gold" : "neg");
+
+  const chicaEl = document.getElementById("sumCajaChica");
+  chicaEl.textContent = fmt(chica);
+  chicaEl.className = "value " + (chica>=0 ? "pos" : "neg");
+
+  const grandeEl = document.getElementById("sumCajaGrande");
+  grandeEl.textContent = fmt(grande);
+  grandeEl.className = "value " + (grande>=0 ? "pos" : "neg");
+
+  const bd = document.getElementById("gastoBreakdown");
+  const cats = Object.keys(gastoPorCat);
+  if(cats.length===0){
+    bd.className="empty";
+    bd.textContent = "Sin gastos cargados todavía.";
+  } else {
+    bd.className="";
+    bd.innerHTML = "<table><thead><tr><th>Categoría</th><th>Total</th></tr></thead><tbody>" +
+      cats.sort((a,b)=>gastoPorCat[b]-gastoPorCat[a]).map(c=>
+        `<tr><td>${c}</td><td>${fmt(gastoPorCat[c])}</td></tr>`
+      ).join("") + "</tbody></table>";
+  }
+
+  const list = document.getElementById("movList");
+  if(DATA.movements.length===0){
+    list.className="empty";
+    list.textContent = "Todavía no hay movimientos.";
+  } else {
+    list.className="";
+    const sorted = [...DATA.movements].sort((a,b)=> (b.fecha||"").localeCompare(a.fecha||"") || b.id.localeCompare(a.id));
+    list.innerHTML = "<div style='overflow-x:auto'><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Descripción</th><th>Caja</th><th>Monto</th><th></th></tr></thead><tbody>" +
+      sorted.map(m=>`
+        <tr>
+          <td>${m.fecha||""}</td>
+          <td><span class="tag ${m.tipo}">${m.tipo==="ingreso"?"Ingreso":"Gasto"}</span></td>
+          <td>${m.categoria}</td>
+          <td>${m.descripcion||""}</td>
+          <td>${(m.caja||"chica")==="grande" ? "Grande" : "Chica"}</td>
+          <td>${fmt(m.monto)}</td>
+          <td><button class="btn-small" data-del="${m.id}">Borrar</button></td>
+        </tr>`
+      ).join("") + "</tbody></table></div>";
+    list.querySelectorAll("[data-del]").forEach(btn=>{
+      btn.addEventListener("click", ()=> deleteMovement(btn.dataset.del));
+    });
+  }
+}
+
+async function deleteMovement(id){
+  const mov = DATA.movements.find(m=>m.id===id);
+  if(!mov) return;
+  if(mov.tipo==="ingreso" && mov.categoria==="Venta" && mov.productId){
+    const prod = DATA.products.find(p=>p.id===mov.productId);
+    if(prod) prod.stock = (Number(prod.stock)||0) + (Number(mov.cantidad)||1);
+  }
+  if(mov.tipo==="gasto" && mov.categoria==="Mercadería" && mov.reponeProductId){
+    const prod = DATA.products.find(p=>p.id===mov.reponeProductId);
+    if(prod) prod.stock = Math.max(0, (Number(prod.stock)||0) - (Number(mov.reponeCantidad)||0));
+  }
+  DATA.movements = DATA.movements.filter(m=>m.id!==id);
+  await saveData();
+  renderCaja();
+  renderInventario();
+}
+
+const btnTipoIngreso = document.getElementById("btnTipoIngreso");
+const btnTipoGasto = document.getElementById("btnTipoGasto");
+btnTipoIngreso.addEventListener("click", ()=>{
+  btnTipoIngreso.classList.add("sel");
+  btnTipoGasto.classList.remove("sel");
+  document.getElementById("formIngreso").classList.remove("hidden");
+  document.getElementById("formGasto").classList.add("hidden");
+});
+btnTipoGasto.addEventListener("click", ()=>{
+  btnTipoGasto.classList.add("sel");
+  btnTipoIngreso.classList.remove("sel");
+  document.getElementById("formGasto").classList.remove("hidden");
+  document.getElementById("formIngreso").classList.add("hidden");
+});
+
+document.getElementById("ingresoCategoria").addEventListener("change", (e)=>{
+  const isVenta = e.target.value === "Venta";
+  document.getElementById("ventaFields").classList.toggle("hidden", !isVenta);
+  document.getElementById("ingresoOtroFields").classList.toggle("hidden", isVenta);
+});
+
+document.getElementById("reponerCheck").addEventListener("change", (e)=>{
+  document.getElementById("reponerFields").classList.toggle("hidden", !e.target.checked);
+});
+
+function refreshMovForm(){
+  document.getElementById("movFecha").value = new Date().toISOString().slice(0,10);
+  const ventaSel = document.getElementById("ventaProducto");
+  const reponerSel = document.getElementById("reponerProducto");
+  const disponibles = DATA.products.filter(p=>p.stock>0);
+  ventaSel.innerHTML = disponibles.map(p=>`<option value="${p.id}">${p.descripcion} (stock: ${p.stock}) - ${fmt(p.precio)}</option>`).join("");
+  reponerSel.innerHTML = DATA.products.map(p=>`<option value="${p.id}">${p.descripcion} (stock: ${p.stock})</option>`).join("");
+  updateVentaPrecio();
+}
+
+function updateVentaPrecio(){
+  const sel = document.getElementById("ventaProducto");
+  const prod = DATA.products.find(p=>p.id===sel.value);
+  const cant = Number(document.getElementById("ventaCantidad").value)||1;
+  if(prod){
+    document.getElementById("ventaPrecioUnit").value = prod.precio;
+    document.getElementById("ventaTotal").value = prod.precio * cant;
+    document.getElementById("stockDisponibleNote").textContent = "Stock disponible: " + prod.stock;
+  }
+}
+document.getElementById("ventaProducto").addEventListener("change", updateVentaPrecio);
+document.getElementById("ventaCantidad").addEventListener("input", updateVentaPrecio);
+document.getElementById("ventaPrecioUnit").addEventListener("input", ()=>{
+  const cant = Number(document.getElementById("ventaCantidad").value)||1;
+  const unit = Number(document.getElementById("ventaPrecioUnit").value)||0;
+  document.getElementById("ventaTotal").value = unit*cant;
+});
+
+document.getElementById("btnGuardarMov").addEventListener("click", async ()=>{
+  const msg = document.getElementById("movMsg");
+  msg.textContent = "";
+  const fecha = document.getElementById("movFecha").value || new Date().toISOString().slice(0,10);
+  const caja = document.getElementById("movCaja").value;
+  const esIngreso = btnTipoIngreso.classList.contains("sel");
+
+  if(esIngreso){
+    const cat = document.getElementById("ingresoCategoria").value;
+    if(cat === "Venta"){
+      const prodId = document.getElementById("ventaProducto").value;
+      const prod = DATA.products.find(p=>p.id===prodId);
+      const cant = Number(document.getElementById("ventaCantidad").value)||1;
+      const total = Number(document.getElementById("ventaTotal").value)||0;
+      if(!prod){ msg.textContent = "Elegí un artículo."; return; }
+      if(cant > prod.stock){ msg.textContent = "No hay stock suficiente (disponible: " + prod.stock + ")."; return; }
+      prod.stock -= cant;
+      DATA.movements.push({
+        id: "m"+Date.now(),
+        fecha, tipo:"ingreso", categoria:"Venta",
+        descripcion: prod.descripcion + (cant>1 ? " x"+cant : ""),
+        monto: total, productId: prod.id, cantidad: cant, caja
+      });
+    } else {
+      const desc = document.getElementById("ingresoOtroDesc").value || "Otro ingreso";
+      const monto = Number(document.getElementById("ingresoOtroMonto").value)||0;
+      DATA.movements.push({ id:"m"+Date.now(), fecha, tipo:"ingreso", categoria:"Otro", descripcion: desc, monto, caja });
+    }
+  } else {
+    const cat = document.getElementById("gastoCategoria").value;
+    const desc = document.getElementById("gastoDesc").value || cat;
+    const monto = Number(document.getElementById("gastoMonto").value)||0;
+    const mov = { id:"m"+Date.now(), fecha, tipo:"gasto", categoria: cat, descripcion: desc, monto, caja };
+    if(cat === "Mercadería" && document.getElementById("reponerCheck").checked){
+      const prodId = document.getElementById("reponerProducto").value;
+      const prod = DATA.products.find(p=>p.id===prodId);
+      const cant = Number(document.getElementById("reponerCantidad").value)||0;
+      if(prod && cant>0){
+        prod.stock = (Number(prod.stock)||0) + cant;
+        mov.reponeProductId = prod.id;
+        mov.reponeCantidad = cant;
+        mov.descripcion += " (repone " + cant + " de " + prod.descripcion + ")";
+      }
+    }
+    DATA.movements.push(mov);
+  }
+
+  await saveData();
+  msg.textContent = "Movimiento guardado.";
+  document.getElementById("gastoDesc").value = "";
+  document.getElementById("gastoMonto").value = 0;
+  document.getElementById("ingresoOtroDesc").value = "";
+  document.getElementById("ingresoOtroMonto").value = 0;
+  document.getElementById("reponerCheck").checked = false;
+  document.getElementById("reponerFields").classList.add("hidden");
+  document.getElementById("movCaja").value = "chica";
+  refreshMovForm();
+  renderCaja();
+  renderInventario();
+});
+
+function renderInventario(){
+  const q = (document.getElementById("searchInv").value||"").toLowerCase();
+  const body = document.getElementById("invBody");
+  const filtered = DATA.products.filter(p=>
+    p.descripcion.toLowerCase().includes(q) ||
+    (p.material||"").toLowerCase().includes(q) ||
+    (p.categoria||"").toLowerCase().includes(q)
+  );
+  body.innerHTML = filtered.map(p=>`
+    <tr>
+      <td>${p.descripcion}</td>
+      <td>${p.material||""}</td>
+      <td>${p.categoria||""}</td>
+      <td><input type="number" data-field="stock" data-id="${p.id}" value="${p.stock}" style="width:70px; padding:4px;" class="${p.stock<=0?'stock-low':''}"></td>
+      <td><input type="number" data-field="precio" data-id="${p.id}" value="${p.precio}" style="width:90px; padding:4px;"></td>
+      <td><button class="btn-small" data-delp="${p.id}">Borrar</button></td>
+    </tr>
+  `).join("");
+
+  body.querySelectorAll("input[data-field]").forEach(inp=>{
+    inp.addEventListener("change", async ()=>{
+      const prod = DATA.products.find(p=>p.id===inp.dataset.id);
+      if(prod){
+        prod[inp.dataset.field] = Number(inp.value)||0;
+        await saveData();
+        renderCaja();
+      }
+    });
+  });
+  body.querySelectorAll("[data-delp]").forEach(btn=>{
+    btn.addEventListener("click", async ()=>{
+      DATA.products = DATA.products.filter(p=>p.id!==btn.dataset.delp);
+      await saveData();
+      renderInventario();
+    });
+  });
+}
+document.getElementById("searchInv").addEventListener("input", renderInventario);
+
+document.getElementById("btnAgregarProducto").addEventListener("click", async ()=>{
+  const desc = document.getElementById("nuevoDesc").value.trim();
+  if(!desc) return;
+  const material = document.getElementById("nuevoMaterial").value.trim();
+  const categoria = document.getElementById("nuevoCategoria").value.trim();
+  const stock = Number(document.getElementById("nuevoStock").value)||0;
+  const precio = Number(document.getElementById("nuevoPrecio").value)||0;
+  DATA.products.push({ id:"p"+Date.now(), descripcion:desc, material, categoria, stock, precio });
+  await saveData();
+  document.getElementById("nuevoDesc").value = "";
+  document.getElementById("nuevoMaterial").value = "";
+  document.getElementById("nuevoCategoria").value = "";
+  document.getElementById("nuevoStock").value = 1;
+  document.getElementById("nuevoPrecio").value = 0;
+  renderInventario();
+});
+
+(async function init(){
+  await loadData();
+  document.getElementById("loadingScreen").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  refreshMovForm();
+  renderInventario();
+  renderCaja();
+})();
+</script>
+</body>
+</html>
