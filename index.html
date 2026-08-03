@@ -126,6 +126,20 @@
   .tag.ingreso{ background:#e2ecdf; color:#2c4f41; }
   .tag.gasto{ background:#f3e2df; color:#8a3324; }
   .search-bar{ margin-bottom:10px; }
+  .search-results{ margin-top:2px; }
+  .search-item{
+    padding:8px 10px;
+    border:1px solid #e2dcc9;
+    border-top:none;
+    cursor:pointer;
+    background:#fffdf8;
+    font-size:13px;
+  }
+  .search-item:first-child{ border-top:1px solid #e2dcc9; border-radius:6px 6px 0 0; }
+  .search-item:last-child{ border-radius:0 0 6px 6px; }
+  .search-item:hover{ background:#f1ece0; }
+  .search-item .search-meta{ color:#8a8060; font-size:11px; display:block; }
+  .search-empty{ padding:8px 10px; font-size:12px; color:#a39c86; }
   .stock-low{ color: var(--jj-rojo); font-weight:700; }
   .toggle-group{ display:flex; gap:8px; margin-bottom:10px; }
   .toggle-group button{
@@ -168,11 +182,11 @@
       <div class="cards">
         <div class="card"><div class="label">Ingresos</div><div class="value pos" id="sumIngresos">$0</div></div>
         <div class="card"><div class="label">Gastos</div><div class="value neg" id="sumGastos">$0</div></div>
-        <div class="card"><div class="label">Ganancia</div><div class="value gold" id="sumGanancia">$0</div></div>
+        <div class="card"><div class="label">Ganancia (con inversión)</div><div class="value gold" id="sumGanancia">$0</div></div>
       </div>
 
       <div class="cards">
-        <div class="card"><div class="label">Caja chica</div><div class="value" id="sumCajaChica">$0</div></div>
+        <div class="card"><div class="label">Caja chica (Mercado Pago)</div><div class="value" id="sumCajaChica">$0</div></div>
         <div class="card"><div class="label">Caja grande</div><div class="value" id="sumCajaGrande">$0</div></div>
       </div>
 
@@ -206,7 +220,9 @@
 
           <div id="ventaFields">
             <label>Artículo vendido</label>
-            <select id="ventaProducto"></select>
+            <input type="text" id="ventaProductoInput" placeholder="Escribí para buscar (ej: anillo, argolla...)" autocomplete="off">
+            <div id="ventaProductoResults" class="search-results"></div>
+            <input type="hidden" id="ventaProductoId">
             <div class="row">
               <div>
                 <label>Cantidad</label>
@@ -254,7 +270,9 @@
             </label>
             <div id="reponerFields" class="hidden">
               <label>Artículo</label>
-              <select id="reponerProducto"></select>
+              <input type="text" id="reponerProductoInput" placeholder="Escribí para buscar..." autocomplete="off">
+              <div id="reponerProductoResults" class="search-results"></div>
+              <input type="hidden" id="reponerProductoId">
               <label>Cantidad comprada</label>
               <input type="number" id="reponerCantidad" value="1" min="1">
             </div>
@@ -266,7 +284,7 @@
 
         <label>Caja</label>
         <select id="movCaja">
-          <option value="chica">Caja chica (efectivo del día a día)</option>
+          <option value="chica">Caja chica (Mercado Pago)</option>
           <option value="grande">Caja grande (ahorros / inversión fuerte)</option>
         </select>
 
@@ -330,101 +348,126 @@ let DATA = { products: [], movements: [] };
 let loaded = false;
 
 const rawProducts = [
-["Abridores varios (+ modelos en destacadas)","Plata 925","Precios x 27",27,189000],
-["Esclava","Plata 925","Pulseras",1,100000],
-["Roló punto peruano","Plata 925","Pulseras",1,100000],
-["Argollas Grandes Gruesas","Plata 925","Argollas",1,75000],
-["Anillo Cruz con detalles","Plata 925","Anillos",1,75000],
-["Argollas Medianas Gruesas","Plata 925","Argollas",1,65000],
-["Collar estrellitas regulable","Plata 925","Cadenas",1,60000],
-["Argollas Finas Grandes","Plata 925","Argollas",1,60000],
-["Corbatero corazon","Plata 925","Cadenas",1,56500],
-["Corbatero dije llave","Plata 925","Cadenas",1,56500],
-["Pulsera Bali","Plata 925","Pulseras",1,56500],
-["Anillo tipo alianza","Plata 925","Anillos",1,56500],
-["Argollas dobles","Plata 925","Argollas",1,50000],
-["Pulsera mariposa","Plata 925","Pulseras",1,47940],
-["Dije Moño Cubic Strass","Plata 925","Dijes",1,42840],
-["Dije Rombo Cubic Strass","Plata 925","Dijes",1,42840],
-["Dije Susanito Cubic Strass","Plata 925","Dijes",1,42840],
-["Aros estrella","Plata 925","Aros",1,41140],
-["Dijes para pandora","Plata 925","Dijes",1,39440],
-["Dijes para pandora","Plata 925","Dijes",1,39440],
-["Dijes para pandora","Plata 925","Dijes",1,39440],
-["Dijes para pandora","Plata 925","Dijes",1,39440],
-["Argollas lunita rosé","Plata 925 Rosé","Argollas",1,39440],
-["Anillos curvas","Plata 925","Anillos",1,36040],
-["Dije cruz swarovski","Plata 925","Dijes",1,35900],
-["Dije estrella swarovski","Plata 925","Dijes",1,35900],
-["Dije triángulo swarowski","Plata 925","Dijes",1,35900],
-["anillo corazón","Plata 925","Anillos",1,32000],
-["anillo olita","Plata 925","Anillos",1,29240],
-["anillo corazon","Plata 925","Anillos",1,29240],
-["Media Falange Corazón","Plata 925","Anillos",1,25900],
-["Argollitas Ojo Turco","Plata 925","Argollas",1,25840],
-["Argollas corazón","Plata 925","Argollas",1,25840],
-["Argolla Circulo","Plata 925","Argollas",1,25840],
-["Argolla Ojo Turco Rosa","Plata 925","Argollas",1,25840],
-["argollas cubanas","Plata 925","Argollas",1,25626],
-["Dije olita con cubic","Plata 925","Dijes",1,22440],
-["Dije circulo con maripositas","Plata 925","Dijes",1,56440],
-["Patita dije","Plata 925","Dijes",1,56440],
-["Aros strass cruzados MINCA gold/plata","Fantasia","Aros de Fiesta",1,20400],
-["Aros flowers Strass","Fantasia","Aros de Fiesta",1,20400],
-["Aros pasante corazón acero blanco","Acero Blanco","Aros",1,19040],
-["Argollita Cookie","Plata 925","Argollas",1,18859],
-["Dijes nenes cubic","Plata 925","Dijes",1,17088],
-["Dijes nenes cubic","Plata 925","Dijes",1,17088],
-["Dije elefante","Plata 925","Dijes",1,15640],
-["Dije llave","Plata 925","Dijes",1,15640],
-["circulo dije","Plata 925","Dijes",1,56440],
-["Dije cirulo hueco con strass","Plata 925","Dijes",1,15640],
-["Argollas chapita dorada","Acero Dorado","Argollas",1,15100],
-["Argollas micro chapita","Acero Blanco","Argollas",1,15100],
-["Estrella G argolla","Acero Dorado","Argollas",1,12240],
-["Flores G argolla","Acero Dorado","Argollas",1,12240],
-["corazon G argolla","Acero Dorado","Argollas",1,12240],
-["Corazon M argolla","Acero Dorado","Argollas",1,12240],
-["corazon G argolla","Acero Dorado","Argollas",1,12240],
-["Estrella M argolla","Acero Dorado","Argollas",1,12240],
-["Rectangulos argolla","Acero Dorado","Argollas",1,12240],
-["Rayitos argolla","Acero Dorado","Argollas",1,12240],
-["Rectangulos argolla","Acero Dorado","Argollas",1,12240],
-["Estrella y Corazón G argolla","Acero Dorado","Argollas",1,10000],
-["Estrella Blanca G argolla","Acero Dorado","Argollas",1,10000],
-["Aros CHAIN dorado","Acero Dorado","Aros",1,12240],
-["Aros CHAIN dorado","Acero Dorado","Aros",1,12240],
-["Argolla Solitaria Ancha","Plata 925","Aro Solitario",1,13940],
-["Guitarra Solitaria","Plata 925","Aro Solitario",1,10540],
-["Argolla Dorada Fantasía","Acero Dorado","Aros de Fiesta",1,12240],
-["Argolla Dorada Fantasía","Acero Dorado","Aros de Fiesta",1,12240],
-["Argolla Solitaria Ojito","Plata 925","Aro Solitario",1,12240],
-["Cuff Flor","Plata 925","Cuff",1,15000],
-["Cuff Olita","Plata 925","Cuff",1,15000],
-["Cuff Doble Linea","Plata 925","Cuff",1,15000],
-["Cuff Doble Linea","Plata 925","Cuff",1,15000],
-["bolitas","Plata 925","Trepadores",1,13940],
-["estrellitas","Plata 925","Trepadores",1,13940],
-["Huella Mini","Plata 925","Aros",1,7000],
-["Minnie Mini","Plata 925","Aros",1,7000],
-["Argolla Forma Corazón","Plata 925","Argollas",1,10000],
-["Argolla Dije Mini Flor y Corazón","Plata 925","Argollas",1,10000],
-["Aros Cruz Solitario","Plata 925","Aro Solitario",1,10540],
-["Piciercing Brillo","Plata 925","Aros a Presion",1,10000],
-["Argollita Solitarias Mini Bolita","Plata 925","Argollas",1,10000],
-["Piciercing Diamante","Plata 925","Aro Solitario",1,10000],
-["Cadena de Plata","Plata 925","Cadena",0,0],
-["Tobillera","Plata 925","Tobillera",0,0]
+["Anillos curvas","Plata 925","Anillos",35360],
+["Anillo Cruz con detalles","Plata 925","Anillos",75000],
+["Anillo tipo alianza","Plata 925","Anillos",56500],
+["anillo corazón","Plata 925","Anillos",32000],
+["anillo olita","Plata 925","Anillos",28560],
+["anillo corazon","Plata 925","Anillos",28560],
+["Media Falange Corazón","Plata 925","Anillos",25900],
+["Argollas Finas Grandes","Plata 925","Argollas",60000],
+["Argollas dobles","Plata 925","Argollas",50000],
+["Estrella M argolla","Acero Dorado","Argollas",11560],
+["argollas cubanas","Plata 925","Argollas",24946],
+["Argollas Grandes Gruesas","Plata 925","Argollas",75000],
+["Argollas Medianas Gruesas","Plata 925","Argollas",65000],
+["Argollas lunita rosé","Plata 925 Rosé","Argollas",38760],
+["Argollitas Ojo Turco","Plata 925","Argollas",25160],
+["Argollas corazón","Plata 925","Argollas",25160],
+["Argolla Circulo","Plata 925","Argollas",25160],
+["Argolla Ojo Turco Rosa","Plata 925","Argollas",25160],
+["Argollita Cookie","Plata 925","Argollas",18179],
+["Argollas chapita dorada","Acero Dorado","Argollas",15100],
+["Argollas micro chapita","Acero Blanco","Argollas",15100],
+["Estrella G argolla","Acero Dorado","Argollas",11560],
+["Flores G argolla","Acero Dorado","Argollas",11560],
+["corazon G argolla","Acero Dorado","Argollas",11560],
+["Corazon M argolla","Acero Dorado","Argollas",11560],
+["corazon G argolla","Acero Dorado","Argollas",11560],
+["Rectangulos argolla","Acero Dorado","Argollas",11560],
+["Rayitos argolla","Acero Dorado","Argollas",11560],
+["Rectangulos argolla","Acero Dorado","Argollas",11560],
+["Estrella y Corazón G argolla","Acero Dorado","Argollas",10000],
+["Estrella Blanca G argolla","Acero Dorado","Argollas",10000],
+["Argolla Forma Corazón","Plata 925","Argollas",10000],
+["Argolla Dije Mini Flor y Corazón","Plata 925","Argollas",10000],
+["Argollita Solitarias Mini Bolita","Plata 925","Argollas",10000],
+["Guitarra Solitaria","Plata 925","Aro Solitario",9860],
+["Argolla Solitaria Ancha","Plata 925","Aro Solitario",13260],
+["Argolla Solitaria Ojito","Plata 925","Aro Solitario",11560],
+["Aros Cruz Solitario","Plata 925","Aro Solitario",9860],
+["Piciercing Diamante","Plata 925","Aro Solitario",10000],
+["Aros estrella","Plata 925","Aros",40460],
+["Aros pasante corazón acero blanco","Acero Blanco","Aros",18360],
+["Aros CHAIN dorado","Acero Dorado","Aros",11560],
+["Aros CHAIN dorado","Acero Dorado","Aros",11560],
+["Huella Mini","Plata 925","Aros",7000],
+["Minnie Mini","Plata 925","Aros",7000],
+["Piciercing Brillo","Plata 925","Aros a Presion",10000],
+["Argolla Dorada Fantasía","Acero Dorado","Aros de Fiesta",11560],
+["Aros strass cruzados MINCA gold/plata","Fantasia","Aros de Fiesta",19720],
+["Aros flowers Strass","Fantasia","Aros de Fiesta",19720],
+["Argolla Dorada Fantasía","Acero Dorado","Aros de Fiesta",11560],
+["Cadena de Plata","Plata 925","Cadena",0],
+["Collar estrellitas regulable","Plata 925","Cadenas",60000],
+["Corbatero corazon","Plata 925","Cadenas",56500],
+["Corbatero dije llave","Plata 925","Cadenas",56500],
+["Cuff Flor","Plata 925","Cuff",15000],
+["Cuff Olita","Plata 925","Cuff",15000],
+["Cuff Doble Linea","Plata 925","Cuff",15000],
+["Cuff Doble Linea","Plata 925","Cuff",15000],
+["Dijes para pandora","Plata 925","Dijes",38760],
+["Dijes para pandora","Plata 925","Dijes",38760],
+["Dije triángulo swarowski","Plata 925","Dijes",35900],
+["Dije Moño Cubic Strass","Plata 925","Dijes",42160],
+["Dije Rombo Cubic Strass","Plata 925","Dijes",42160],
+["Dije Susanito Cubic Strass","Plata 925","Dijes",42160],
+["Dijes para pandora","Plata 925","Dijes",38760],
+["Dijes para pandora","Plata 925","Dijes",38760],
+["Dije cruz swarovski","Plata 925","Dijes",35900],
+["Dije estrella swarovski","Plata 925","Dijes",35900],
+["Dije olita con cubic","Plata 925","Dijes",21760],
+["Dije circulo con maripositas","Plata 925","Dijes",38760],
+["Patita dije","Plata 925","Dijes",38760],
+["Dijes nenes cubic","Plata 925","Dijes",16408],
+["Dijes nenes cubic","Plata 925","Dijes",16408],
+["Dije elefante","Plata 925","Dijes",14960],
+["Dije llave","Plata 925","Dijes",14960],
+["circulo dije","Plata 925","Dijes",38760],
+["Dije cirulo hueco con strass","Plata 925","Dijes",14960],
+["Abridores varios (+ modelos en destacadas)","Plata 925","Precios x 27",189000],
+["Esclava","Plata 925","Pulseras",100000],
+["Roló punto peruano","Plata 925","Pulseras",100000],
+["Pulsera Bali","Plata 925","Pulseras",55760],
+["Pulsera mariposa","Plata 925","Pulseras",47260],
+["Tobillera","Plata 925","Tobillera",0],
+["bolitas","Plata 925","Trepadores",13260],
+["estrellitas","Plata 925","Trepadores",13260],
+["Anillo Bolitas","Plata 925","Anillos",75000]
 ];
 
+function slugify(desc){
+  return (desc||"").toString().trim().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-z0-9]+/g,"_")
+    .replace(/^_+|_+$/g,"");
+}
+
+function buildProductIdList(catalog){
+  const counts = {};
+  return catalog.map(p=>{
+    const key = p[0].trim().toLowerCase();
+    counts[key] = (counts[key]||0)+1;
+    const occ = counts[key];
+    return "prod_" + slugify(p[0]) + (occ>1 ? "_"+occ : "");
+  });
+}
+
+function defaultStockFor(desc){
+  if(desc === "Abridores varios (+ modelos en destacadas)") return 27;
+  if(desc === "Cadena de Plata" || desc === "Tobillera") return 0;
+  return 1;
+}
+
 function buildDefaultProducts(){
+  const ids = buildProductIdList(rawProducts);
   return rawProducts.map((p,i)=>({
-    id: "p"+(i+1),
-    descripcion: p[0],
+    id: ids[i],
+    descripcion: p[0].trim(),
     material: p[1],
     categoria: p[2],
-    stock: p[3],
-    precio: p[4]
+    stock: defaultStockFor(p[0].trim()),
+    precio: p[3]
   }));
 }
 
@@ -436,7 +479,7 @@ function buildDefaultMovements(){
   ];
 }
 
-const DATA_VERSION = 3;
+const DATA_VERSION = 5;
 
 function findProdIdByDesc(desc){
   const p = DATA.products.find(pp => pp.descripcion === desc);
@@ -445,12 +488,6 @@ function findProdIdByDesc(desc){
 
 function applyHistorialV2(){
   const today = new Date().toISOString().slice(0,10);
-
-  const fixMap = {};
-  rawProducts.forEach((p,i)=>{ fixMap["p"+(i+1)] = p[4]; });
-  DATA.products.forEach(prod=>{
-    if(fixMap.hasOwnProperty(prod.id)) prod.precio = fixMap[prod.id];
-  });
 
   const ventas = [
     ["Esclava", 100000],
@@ -502,13 +539,6 @@ function applyHistorialV2(){
       caja: g[1] === "Inversión Belu - Mercadería" ? "grande" : "chica"
     });
   });
-
-  DATA.version = DATA_VERSION;
-}
-
-function fmt(n){
-  n = Math.round(Number(n)||0);
-  return "$" + n.toLocaleString("es-AR");
 }
 
 function applyCajaSplitV3(){
@@ -517,29 +547,82 @@ function applyCajaSplitV3(){
       m.caja = (m.descripcion === "Inversión Belu - Mercadería") ? "grande" : "chica";
     }
   });
-  DATA.version = DATA_VERSION;
+}
+
+function applyCatalogUpdateV4(){
+  const newProducts = buildDefaultProducts();
+
+  const oldByDesc = {};
+  DATA.products.forEach(p=>{
+    const key = (p.descripcion||"").trim().toLowerCase();
+    if(!oldByDesc[key]) oldByDesc[key] = [];
+    oldByDesc[key].push(p);
+  });
+
+  const idMap = {};
+
+  newProducts.forEach(np=>{
+    const key = np.descripcion.trim().toLowerCase();
+    const bucket = oldByDesc[key];
+    if(bucket && bucket.length){
+      const oldP = bucket.shift();
+      np.stock = oldP.stock;
+      idMap[oldP.id] = np.id;
+    }
+  });
+
+  Object.values(oldByDesc).forEach(bucket=>{
+    bucket.forEach(oldP=>{
+      newProducts.push(oldP);
+      idMap[oldP.id] = oldP.id;
+    });
+  });
+
+  DATA.movements.forEach(m=>{
+    if(m.productId && idMap[m.productId]) m.productId = idMap[m.productId];
+    if(m.reponeProductId && idMap[m.reponeProductId]) m.reponeProductId = idMap[m.reponeProductId];
+  });
+
+  DATA.products = newProducts;
+}
+
+function applyFinancialAdjustmentsV5(){
+  DATA.movements = DATA.movements.filter(m => m.id !== "hist_g_4");
+
+  const today = new Date().toISOString().slice(0,10);
+  const additions = [
+    {id:"hist5_kitty_maria", fecha:today, tipo:"gasto", categoria:"Packaging", descripcion:"Libreria Kitty - Maria", monto:12350, caja:"chica"},
+    {id:"hist5_kitty_cami", fecha:today, tipo:"gasto", categoria:"Packaging", descripcion:"Libreria Kitty - Cami", monto:9000, caja:"chica"},
+    {id:"hist5_merc_cami", fecha:today, tipo:"gasto", categoria:"Mercadería", descripcion:"Compra de mercadería - Cami", monto:25000, caja:"chica"},
+    {id:"hist5_merc_maria", fecha:today, tipo:"gasto", categoria:"Mercadería", descripcion:"Compra de mercadería - Maria", monto:25000, caja:"chica"}
+  ];
+  additions.forEach(a=>{
+    if(!DATA.movements.find(m=>m.id===a.id)) DATA.movements.push(a);
+  });
+}
+
+function fmt(n){
+  n = Math.round(Number(n)||0);
+  return "$" + n.toLocaleString("es-AR");
 }
 
 async function loadData(){
-  let isNew = false;
   try{
     const res = await window.storage.get("jade-caja-data", false);
     if(res && res.value){
       DATA = JSON.parse(res.value);
     } else {
       DATA = { products: buildDefaultProducts(), movements: buildDefaultMovements() };
-      isNew = true;
     }
   } catch(e){
     DATA = { products: buildDefaultProducts(), movements: buildDefaultMovements() };
-    isNew = true;
   }
-  if(!DATA.version || DATA.version < 2){
-    applyHistorialV2();
-  }
-  if(!DATA.version || DATA.version < DATA_VERSION){
-    applyCajaSplitV3();
-  }
+  const v = DATA.version || 1;
+  if(v < 2) applyHistorialV2();
+  if(v < 3) applyCajaSplitV3();
+  if(v < 4) applyCatalogUpdateV4();
+  if(v < 5) applyFinancialAdjustmentsV5();
+  DATA.version = DATA_VERSION;
   try{ await saveData(); }catch(e2){}
   loaded = true;
 }
@@ -550,6 +633,86 @@ async function saveData(){
   } catch(e){
     console.error("Error guardando datos", e);
   }
+}
+
+function normalizeStr(s){
+  return (s||"").toString().trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+}
+
+function levenshtein(a,b){
+  const m=a.length, n=b.length;
+  if(m===0) return n;
+  if(n===0) return m;
+  const dp = [];
+  for(let i=0;i<=m;i++){ dp.push(new Array(n+1).fill(0)); dp[i][0]=i; }
+  for(let j=0;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++){
+    for(let j=1;j<=n;j++){
+      const cost = a[i-1]===b[j-1] ? 0 : 1;
+      dp[i][j] = Math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+cost);
+    }
+  }
+  return dp[m][n];
+}
+
+function matchScore(query, text){
+  const q = normalizeStr(query);
+  if(!q) return null;
+  const norm = normalizeStr(text);
+  if(norm.includes(q)) return 0;
+  const words = norm.split(/\s+/);
+  let best = null;
+  words.forEach(w=>{
+    if(w.includes(q)){ if(best===null) best=1; return; }
+    const threshold = Math.max(1, Math.ceil(q.length*0.34));
+    const d = levenshtein(q, w);
+    if(d<=threshold){
+      const score = d+2;
+      if(best===null || score<best) best=score;
+    }
+  });
+  return best;
+}
+
+function fuzzySearchProducts(query, onlyInStock){
+  return DATA.products
+    .filter(p=> !onlyInStock || p.stock>0)
+    .map(p=>({p, score: matchScore(query, p.descripcion)}))
+    .filter(x=>x.score!==null)
+    .sort((a,b)=>a.score-b.score)
+    .map(x=>x.p);
+}
+
+function setupProductSearch(inputId, resultsId, onlyInStock, onSelect){
+  document.getElementById(inputId).addEventListener("input",(e)=>{
+    const q = e.target.value;
+    const box = document.getElementById(resultsId);
+    if(!q){ box.innerHTML=""; return; }
+    const results = fuzzySearchProducts(q, onlyInStock).slice(0,8);
+    if(results.length===0){ box.innerHTML = '<div class="search-empty">Sin resultados</div>'; return; }
+    box.innerHTML = results.map(p=>`<div class="search-item" data-id="${p.id}">${p.descripcion}<span class="search-meta">${p.categoria} · stock ${p.stock} · ${fmt(p.precio)}</span></div>`).join("");
+    box.querySelectorAll(".search-item").forEach(el=>{
+      el.addEventListener("click", ()=>{
+        onSelect(el.dataset.id);
+        box.innerHTML="";
+      });
+    });
+  });
+}
+
+function selectVentaProducto(id){
+  const prod = DATA.products.find(p=>p.id===id);
+  if(!prod) return;
+  document.getElementById("ventaProductoId").value = id;
+  document.getElementById("ventaProductoInput").value = prod.descripcion;
+  updateVentaPrecio();
+}
+
+function selectReponerProducto(id){
+  const prod = DATA.products.find(p=>p.id===id);
+  if(!prod) return;
+  document.getElementById("reponerProductoId").value = id;
+  document.getElementById("reponerProductoInput").value = prod.descripcion + " (stock: " + prod.stock + ")";
 }
 
 function switchTab(tab){
@@ -678,17 +841,20 @@ document.getElementById("reponerCheck").addEventListener("change", (e)=>{
 
 function refreshMovForm(){
   document.getElementById("movFecha").value = new Date().toISOString().slice(0,10);
-  const ventaSel = document.getElementById("ventaProducto");
-  const reponerSel = document.getElementById("reponerProducto");
-  const disponibles = DATA.products.filter(p=>p.stock>0);
-  ventaSel.innerHTML = disponibles.map(p=>`<option value="${p.id}">${p.descripcion} (stock: ${p.stock}) - ${fmt(p.precio)}</option>`).join("");
-  reponerSel.innerHTML = DATA.products.map(p=>`<option value="${p.id}">${p.descripcion} (stock: ${p.stock})</option>`).join("");
-  updateVentaPrecio();
+  document.getElementById("ventaProductoInput").value = "";
+  document.getElementById("ventaProductoId").value = "";
+  document.getElementById("ventaProductoResults").innerHTML = "";
+  document.getElementById("reponerProductoInput").value = "";
+  document.getElementById("reponerProductoId").value = "";
+  document.getElementById("reponerProductoResults").innerHTML = "";
+  document.getElementById("ventaPrecioUnit").value = 0;
+  document.getElementById("ventaTotal").value = 0;
+  document.getElementById("stockDisponibleNote").textContent = "";
 }
 
 function updateVentaPrecio(){
-  const sel = document.getElementById("ventaProducto");
-  const prod = DATA.products.find(p=>p.id===sel.value);
+  const id = document.getElementById("ventaProductoId").value;
+  const prod = DATA.products.find(p=>p.id===id);
   const cant = Number(document.getElementById("ventaCantidad").value)||1;
   if(prod){
     document.getElementById("ventaPrecioUnit").value = prod.precio;
@@ -696,7 +862,8 @@ function updateVentaPrecio(){
     document.getElementById("stockDisponibleNote").textContent = "Stock disponible: " + prod.stock;
   }
 }
-document.getElementById("ventaProducto").addEventListener("change", updateVentaPrecio);
+setupProductSearch("ventaProductoInput", "ventaProductoResults", true, selectVentaProducto);
+setupProductSearch("reponerProductoInput", "reponerProductoResults", false, selectReponerProducto);
 document.getElementById("ventaCantidad").addEventListener("input", updateVentaPrecio);
 document.getElementById("ventaPrecioUnit").addEventListener("input", ()=>{
   const cant = Number(document.getElementById("ventaCantidad").value)||1;
@@ -714,11 +881,11 @@ document.getElementById("btnGuardarMov").addEventListener("click", async ()=>{
   if(esIngreso){
     const cat = document.getElementById("ingresoCategoria").value;
     if(cat === "Venta"){
-      const prodId = document.getElementById("ventaProducto").value;
+      const prodId = document.getElementById("ventaProductoId").value;
       const prod = DATA.products.find(p=>p.id===prodId);
       const cant = Number(document.getElementById("ventaCantidad").value)||1;
       const total = Number(document.getElementById("ventaTotal").value)||0;
-      if(!prod){ msg.textContent = "Elegí un artículo."; return; }
+      if(!prod){ msg.textContent = "Elegí un artículo de la lista de resultados."; return; }
       if(cant > prod.stock){ msg.textContent = "No hay stock suficiente (disponible: " + prod.stock + ")."; return; }
       prod.stock -= cant;
       DATA.movements.push({
@@ -738,7 +905,7 @@ document.getElementById("btnGuardarMov").addEventListener("click", async ()=>{
     const monto = Number(document.getElementById("gastoMonto").value)||0;
     const mov = { id:"m"+Date.now(), fecha, tipo:"gasto", categoria: cat, descripcion: desc, monto, caja };
     if(cat === "Mercadería" && document.getElementById("reponerCheck").checked){
-      const prodId = document.getElementById("reponerProducto").value;
+      const prodId = document.getElementById("reponerProductoId").value;
       const prod = DATA.products.find(p=>p.id===prodId);
       const cant = Number(document.getElementById("reponerCantidad").value)||0;
       if(prod && cant>0){
